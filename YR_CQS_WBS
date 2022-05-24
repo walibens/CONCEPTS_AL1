@@ -91,4 +91,5 @@ ENDCLASS.
 START-OF-SELECTION.
 
 
+"  NEW lcl_application( )->main_bad( ).
   NEW lcl_application( )->main_good( ).
