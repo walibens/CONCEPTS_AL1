@@ -1,0 +1,94 @@
+"! Command Query Separation - Example
+REPORT yr_cqs_wbs.
+
+CLASS lcl_user DEFINITION FINAL.
+
+  PUBLIC SECTION.
+    METHODS :
+      send_email
+        IMPORTING iv_recipient TYPE string
+                  iv_text      TYPE string,
+      email
+        RETURNING VALUE(rv_result) TYPE string,
+      email_good
+        RETURNING VALUE(rv_result) TYPE string,
+      special_rule
+        RETURNING VALUE(rv_result) TYPE abap_bool.
+
+  PROTECTED SECTION.
+
+  PRIVATE SECTION.
+    DATA :
+       mv_email TYPE string.
+
+
+ENDCLASS.
+
+CLASS lcl_user IMPLEMENTATION.
+
+  "Command Method, altering state without returning value
+  METHOD send_email.
+    cl_demo_output=>display_text( | email sent : { iv_text } | ).
+  ENDMETHOD.
+
+  "Query Method, must return value without altering the state
+  METHOD special_rule.
+    rv_result = COND #( WHEN sy-datum = '20220523' THEN abap_true ).
+  ENDMETHOD.
+
+  "Query Method, must return value without altering the state
+  METHOD email.
+    rv_result = mv_email.
+
+
+    IF special_rule( ).
+      send_email( iv_recipient = mv_email "CQS Violation
+                  iv_text      = 'Special email to violate CQS - command within query' ).
+    ENDIF.
+
+  ENDMETHOD.
+
+    "Query Method, must return value without altering the state
+  METHOD email_good.
+    rv_result = mv_email.
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lcl_application DEFINITION FINAL.
+
+  PUBLIC SECTION.
+    METHODS :
+      main_bad,
+      main_good.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+ENDCLASS.
+
+CLASS lcl_application IMPLEMENTATION.
+
+  METHOD main_bad.
+    DATA(lo_user) = NEW lcl_user( ).
+    lo_user->send_email( iv_recipient = lo_user->email( )
+                         iv_text = 'Here is a text for an email').
+  ENDMETHOD.
+
+  METHOD main_good.
+    DATA(lo_user) = NEW lcl_user( ).
+    IF lo_user->special_rule(  ).
+      lo_user->send_email( iv_recipient = lo_user->email_good( )
+                           iv_text = 'Here is a text for an email with special rule').
+    ELSE.
+      lo_user->send_email( iv_recipient = lo_user->email_good( )
+                           iv_text = 'Here is a text for an email').
+    ENDIF.
+
+  ENDMETHOD.
+ENDCLASS.
+
+
+START-OF-SELECTION.
+
+
+  NEW lcl_application( )->main_good( ).
